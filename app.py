@@ -7,7 +7,7 @@ st.set_page_config(page_title="Goldhar Monthly Form", layout="centered")
 st.title("📋 Official Income & Expense Form")
 
 with st.form("ie_form"):
-    # --- SECTION 1: HEADER (As configured previously) ---
+    # --- SECTION 1: PERSONAL DETAILS ---
     st.header("1. Personal Information")
     col_a, col_b = st.columns(2)
     with col_a:
@@ -22,40 +22,56 @@ with st.form("ie_form"):
 
     st.divider()
 
-    # --- SECTION 2: COMPLETE INCOME SECTION (Line-for-Line) ---
+    # --- SECTION 2: MONTHLY FAMILY INCOME (With Spouse Column) ---
     st.header("2. Monthly Family Income (Net)")
-    st.info("Enter '0' for any fields that do not apply.")
+    st.caption("Enter amounts for yourself. Enter 0 for any that don't apply.")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        inc_emp = st.number_input("Employment income", min_value=0.0, step=10.0)
-        inc_pension = st.number_input("Pension/Annuities", min_value=0.0, step=10.0)
-        inc_child_supp = st.number_input("Child support", min_value=0.0, step=10.0)
-        inc_spousal = st.number_input("Spousal support", min_value=0.0, step=10.0)
-        inc_ei = st.number_input("Employment insurance benefits", min_value=0.0, step=10.0)
+    # Categories from your image
+    inc_labels = [
+        "Employment income", "Pension/Annuities", "Child support", 
+        "Spousal support", "Employment insurance benefits", "Social assistance", 
+        "Self-employment income", "Canada child benefit", "Other net income"
+    ]
     
-    with col2:
-        inc_social = st.number_input("Social assistance", min_value=0.0, step=10.0)
-        inc_self = st.number_input("Self-employment income", min_value=0.0, step=10.0)
-        inc_ccb = st.number_input("Canada child benefit", min_value=0.0, step=10.0)
-        inc_other = st.number_input("Other net income", min_value=0.0, step=10.0)
+    income_values = {}
+    for label in inc_labels:
+        income_values[label] = st.number_input(label, min_value=0.0, step=10.0, key=f"inc_{label}")
 
-    total_income = (inc_emp + inc_pension + inc_child_supp + inc_spousal + 
-                    inc_ei + inc_social + inc_self + inc_ccb + inc_other)
-    
+    total_income = sum(income_values.values())
     st.subheader(f"Total Monthly Income: ${total_income:,.2f}")
 
     st.divider()
-    st.write("*(Note: Next we will add the Non-Discretionary and Discretionary sections exactly as shown on the form)*")
 
-    submitted = st.form_submit_button("Generate PDF with Full Income List")
+    # --- SECTION 3: NON-DISCRETIONARY EXPENSES (Line-for-line) ---
+    st.header("3. Monthly Family Non-Discretionary Expenses")
+    st.info("These are mandatory expenses that reduce your surplus income.")
+    
+    nd_labels = [
+        "Child support payments", 
+        "Spousal support payments", 
+        "Child care", 
+        "Medical condition expenses", 
+        "Fines/Penalties imposed by the court", 
+        "Expenses as a condition of employment", 
+        "Debts where stay has been lifted", 
+        "Other Expenses"
+    ]
+    
+    nd_values = {}
+    for label in nd_labels:
+        nd_values[label] = st.number_input(label, min_value=0.0, step=10.0, key=f"nd_{label}")
+
+    total_nd = sum(nd_values.values())
+    st.subheader(f"Total Non-Discretionary: ${total_nd:,.2f}")
+
+    submitted = st.form_submit_button("Generate Full Official PDF")
 
 # --- PDF GENERATOR ---
 if submitted:
     pdf = FPDF()
     pdf.add_page()
     
-    # Header
+    # Branding
     pdf.set_font("Arial", 'B', 14)
     pdf.cell(200, 10, txt="INCOME & EXPENSE WORKSHEET", ln=True, align='C')
     pdf.set_font("Arial", size=10)
@@ -71,40 +87,44 @@ if submitted:
     pdf.cell(90, 7, txt=f"Phone: {phone}", border=1, ln=True)
     pdf.ln(5)
 
-    # Income Section Heading
-    pdf.set_font("Arial", 'B', 11)
-    pdf.set_fill_color(230, 230, 230)
-    pdf.cell(150, 8, txt="MONTHLY FAMILY INCOME (NET)", border=1, fill=True)
-    pdf.cell(40, 8, txt="Bankrupt", border=1, ln=True, align='C', fill=True)
-    
-    # The Full Line-by-Line List
-    pdf.set_font("Arial", size=10)
-    income_items = [
-        ("Employment income", inc_emp),
-        ("Pension/Annuities", inc_pension),
-        ("Child support", inc_child_supp),
-        ("Spousal support", inc_spousal),
-        ("Employment insurance benefits", inc_ei),
-        ("Social assistance", inc_social),
-        ("Self-employment income", inc_self),
-        ("Canada child benefit", inc_ccb),
-        ("Other net income", inc_other)
-    ]
-    
-    for label, amt in income_items:
-        # Drawing the dots to look like the form
-        pdf.cell(150, 8, txt=f"{label} " + "." * (50 - len(label)), border=1)
-        pdf.cell(40, 8, txt=f"${amt:,.2f}", border=1, ln=True, align='R')
-        
-    # Total Line
+    # INCOME TABLE
     pdf.set_font("Arial", 'B', 10)
-    pdf.cell(150, 8, txt="Total", border=1)
-    pdf.cell(40, 8, txt=f"${total_income:,.2f}", border=1, ln=True, align='R')
+    pdf.set_fill_color(230, 230, 230)
+    pdf.cell(130, 8, txt="MONTHLY FAMILY INCOME (NET)", border=1, fill=True)
+    pdf.cell(30, 8, txt="Bankrupt", border=1, fill=True, align='C')
+    pdf.cell(30, 8, txt="Spouse", border=1, fill=True, align='C', ln=True)
+    
+    pdf.set_font("Arial", size=9)
+    for label in inc_labels:
+        pdf.cell(130, 7, txt=f"{label} " + "." * (60 - len(label)), border=1)
+        pdf.cell(30, 7, txt=f"${income_values[label]:,.2f}", border=1, align='R')
+        pdf.cell(30, 7, txt="$0.00", border=1, align='R', ln=True) # Assuming Single as per marital status
+    
+    pdf.set_font("Arial", 'B', 9)
+    pdf.cell(130, 8, txt="Total", border=1)
+    pdf.cell(30, 8, txt=f"${total_income:,.2f}", border=1, align='R')
+    pdf.cell(30, 8, txt="$0.00", border=1, align='R', ln=True)
+    
+    pdf.ln(5)
+
+    # NON-DISCRETIONARY TABLE
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(160, 8, txt="MONTHLY FAMILY NON-DISCRETIONARY EXPENSES", border=1, fill=True)
+    pdf.cell(30, 8, txt="Amount", border=1, fill=True, align='C', ln=True)
+    
+    pdf.set_font("Arial", size=9)
+    for label in nd_labels:
+        pdf.cell(160, 7, txt=f"{label} " + "." * (70 - len(label)), border=1)
+        pdf.cell(30, 7, txt=f"${nd_values[label]:,.2f}", border=1, align='R', ln=True)
+        
+    pdf.set_font("Arial", 'B', 9)
+    pdf.cell(160, 8, txt="Total", border=1)
+    pdf.cell(30, 8, txt=f"${total_nd:,.2f}", border=1, align='R', ln=True)
 
     pdf_output = pdf.output(dest='S').encode('latin-1')
     st.download_button(
-        label="📥 Download PDF",
+        label="📥 Download Full PDF",
         data=pdf_output,
-        file_name=f"Income_Report_{report_date.strftime('%Y_%m')}.pdf",
+        file_name=f"Goldhar_IE_{report_date.strftime('%Y_%m')}.pdf",
         mime="application/pdf"
     )
