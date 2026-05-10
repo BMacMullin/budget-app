@@ -7,7 +7,7 @@ st.set_page_config(page_title="Goldhar Monthly Form", layout="centered")
 st.title("📋 Official Income & Expense Form")
 
 with st.form("ie_form"):
-    # --- SECTION 1: PERSONAL DETAILS ---
+    # --- 1. PERSONAL DETAILS ---
     st.header("1. Personal Information")
     col_a, col_b = st.columns(2)
     with col_a:
@@ -22,109 +22,115 @@ with st.form("ie_form"):
 
     st.divider()
 
-    # --- SECTION 2: MONTHLY FAMILY INCOME (With Spouse Column) ---
+    # --- 2. INCOME ---
     st.header("2. Monthly Family Income (Net)")
-    st.caption("Enter amounts for yourself. Enter 0 for any that don't apply.")
-    
-    # Categories from your image
-    inc_labels = [
-        "Employment income", "Pension/Annuities", "Child support", 
-        "Spousal support", "Employment insurance benefits", "Social assistance", 
-        "Self-employment income", "Canada child benefit", "Other net income"
-    ]
-    
-    income_values = {}
-    for label in inc_labels:
-        income_values[label] = st.number_input(label, min_value=0.0, step=10.0, key=f"inc_{label}")
+    inc_labels = ["Employment income", "Pension/Annuities", "Child support", "Spousal support", "Employment insurance benefits", "Social assistance", "Self-employment income", "Canada child benefit", "Other net income"]
+    inc_vals = {label: st.number_input(label, min_value=0.0, key=f"inc_{label}") for label in inc_labels}
+    total_income = sum(inc_vals.values())
 
-    total_income = sum(income_values.values())
-    st.subheader(f"Total Monthly Income: ${total_income:,.2f}")
+    # --- 3. NON-DISCRETIONARY ---
+    st.header("3. Monthly Non-Discretionary Expenses")
+    nd_labels = ["Child support payments", "Spousal support payments", "Child care", "Medical condition expenses", "Fines/Penalties imposed by the court", "Expenses as a condition of employment", "Debts where stay has been lifted", "Other Expenses"]
+    nd_vals = {label: st.number_input(label, min_value=0.0, key=f"nd_{label}") for label in nd_labels}
+    total_nd = sum(nd_vals.values())
 
     st.divider()
 
-    # --- SECTION 3: NON-DISCRETIONARY EXPENSES (Line-for-line) ---
-    st.header("3. Monthly Family Non-Discretionary Expenses")
-    st.info("These are mandatory expenses that reduce your surplus income.")
+    # --- 4. DISCRETIONARY EXPENSES (LINE BY LINE) ---
+    st.header("4. Monthly Family Discretionary Expenses")
     
-    nd_labels = [
-        "Child support payments", 
-        "Spousal support payments", 
-        "Child care", 
-        "Medical condition expenses", 
-        "Fines/Penalties imposed by the court", 
-        "Expenses as a condition of employment", 
-        "Debts where stay has been lifted", 
-        "Other Expenses"
-    ]
-    
-    nd_values = {}
-    for label in nd_labels:
-        nd_values[label] = st.number_input(label, min_value=0.0, step=10.0, key=f"nd_{label}")
+    # Housing
+    with st.expander("🏠 Housing Expenses", expanded=True):
+        h_labels = ["Rent/Mortgage", "Property taxes/Condo fees", "Heating/Gas/Oil", "Telephone", "Cable", "Hydro", "Water", "Furniture", "Other Housing"]
+        h_vals = {label: st.number_input(label, min_value=0.0, key=f"h_{label}") for label in h_labels}
 
-    total_nd = sum(nd_values.values())
-    st.subheader(f"Total Non-Discretionary: ${total_nd:,.2f}")
+    # Personal
+    with st.expander("👤 Personal Expenses"):
+        p_labels = ["Smoking", "Alcohol", "Dining/Lunches/Restaurants", "Entertainment/Sports", "Gifts/Charitable donations", "Allowances", "Other Personal"]
+        p_vals = {label: st.number_input(label, min_value=0.0, key=f"p_{label}") for label in p_labels}
+
+    # Medical
+    with st.expander("💊 Non-recoverable Medical"):
+        m_labels = ["Prescriptions", "Dental", "Other Medical"]
+        m_vals = {label: st.number_input(label, min_value=0.0, key=f"m_{label}") for label in m_labels}
+
+    # Living
+    with st.expander("🍎 Living Expenses"):
+        l_labels = ["Food/Grocery", "Laundry/Dry cleaning", "Grooming/Toiletries", "Clothing", "Other Living"]
+        l_vals = {label: st.number_input(label, min_value=0.0, key=f"l_{label}") for label in l_labels}
+
+    # Transport
+    with st.expander("🚗 Transportation Expenses"):
+        t_labels = ["Car lease/Payments", "Repair/Maintenance/Gas", "Public transportation", "Other Transport"]
+        t_vals = {label: st.number_input(label, min_value=0.0, key=f"t_{label}") for label in t_labels}
+
+    # Insurance
+    with st.expander("🛡️ Insurance Expenses"):
+        i_labels = ["Vehicle Insurance", "House Insurance", "Furniture/Contents Insurance", "Life insurance", "Other Insurance"]
+        i_vals = {label: st.number_input(label, min_value=0.0, key=f"i_{label}") for label in i_labels}
+
+    # Payments
+    with st.expander("💸 Payments"):
+        pay_labels = ["To the estate", "To secured creditor", "Other (than mortgage and vehicle)", "Other Payments"]
+        pay_vals = {label: st.number_input(label, min_value=0.0, key=f"pay_{label}") for label in pay_labels}
+
+    # FINAL MATH
+    total_discretionary = sum(h_vals.values()) + sum(p_vals.values()) + sum(m_vals.values()) + sum(l_vals.values()) + sum(t_vals.values()) + sum(i_vals.values()) + sum(pay_vals.values())
+    expense_total = total_nd + total_discretionary
+    difference = total_income - expense_total
+
+    st.divider()
+    st.write(f"**Total Income:** ${total_income:,.2f}")
+    st.write(f"**Total Expenses:** ${expense_total:,.2f}")
+    st.subheader(f"Monthly Difference: ${difference:,.2f}")
 
     submitted = st.form_submit_button("Generate Full Official PDF")
 
-# --- PDF GENERATOR ---
+# --- PDF ENGINE ---
 if submitted:
     pdf = FPDF()
     pdf.add_page()
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(0, 10, "INCOME & EXPENSE WORKSHEET - Goldhar & Associates Ltd.", ln=True, align='C')
     
-    # Branding
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(200, 10, txt="INCOME & EXPENSE WORKSHEET", ln=True, align='C')
-    pdf.set_font("Arial", size=10)
-    pdf.cell(200, 5, txt="Goldhar & Associates Ltd.", ln=True, align='C')
-    pdf.ln(10)
+    pdf.set_font("Arial", size=9)
+    # Personal Info Block
+    pdf.cell(100, 6, f"Name: {name}", border=1)
+    pdf.cell(90, 6, f"Date: {report_date.strftime('%B %Y')}", border=1, ln=True)
+    pdf.cell(100, 6, f"Address: 5 Wallingham Street, Dartmouth", border=1)
+    pdf.cell(90, 6, f"Phone: {phone}", border=1, ln=True)
+    pdf.ln(4)
 
-    # Personal Info Table
-    pdf.set_font("Arial", 'B', 10)
-    pdf.cell(100, 7, txt=f"Name: {name}", border=1)
-    pdf.cell(90, 7, txt=f"Month: {report_date.strftime('%B %Y')}", border=1, ln=True)
-    pdf.set_font("Arial", size=10)
-    pdf.cell(100, 7, txt=f"Employer: {employer}", border=1)
-    pdf.cell(90, 7, txt=f"Phone: {phone}", border=1, ln=True)
-    pdf.ln(5)
+    # Helper function to print sections
+    def print_section(title, data_dict):
+        pdf.set_font("Arial", 'B', 10)
+        pdf.cell(160, 7, title, border=1, fill=True)
+        pdf.cell(30, 7, "Amount", border=1, ln=True, align='C', fill=True)
+        pdf.set_font("Arial", size=9)
+        for k, v in data_dict.items():
+            pdf.cell(160, 6, f"{k} " + "." * (80 - len(k)), border=1)
+            pdf.cell(30, 6, f"${v:,.2f}", border=1, ln=True, align='R')
 
-    # INCOME TABLE
-    pdf.set_font("Arial", 'B', 10)
     pdf.set_fill_color(230, 230, 230)
-    pdf.cell(130, 8, txt="MONTHLY FAMILY INCOME (NET)", border=1, fill=True)
-    pdf.cell(30, 8, txt="Bankrupt", border=1, fill=True, align='C')
-    pdf.cell(30, 8, txt="Spouse", border=1, fill=True, align='C', ln=True)
+    print_section("MONTHLY FAMILY INCOME (NET)", inc_vals)
+    print_section("MONTHLY NON-DISCRETIONARY EXPENSES", nd_vals)
+    print_section("HOUSING EXPENSES", h_vals)
+    print_section("PERSONAL EXPENSES", p_vals)
+    print_section("LIVING & TRANSPORT", {**l_vals, **t_vals})
     
-    pdf.set_font("Arial", size=9)
-    for label in inc_labels:
-        pdf.cell(130, 7, txt=f"{label} " + "." * (60 - len(label)), border=1)
-        pdf.cell(30, 7, txt=f"${income_values[label]:,.2f}", border=1, align='R')
-        pdf.cell(30, 7, txt="$0.00", border=1, align='R', ln=True) # Assuming Single as per marital status
-    
-    pdf.set_font("Arial", 'B', 9)
-    pdf.cell(130, 8, txt="Total", border=1)
-    pdf.cell(30, 8, txt=f"${total_income:,.2f}", border=1, align='R')
-    pdf.cell(30, 8, txt="$0.00", border=1, align='R', ln=True)
-    
+    # Summary Table
     pdf.ln(5)
-
-    # NON-DISCRETIONARY TABLE
     pdf.set_font("Arial", 'B', 10)
-    pdf.cell(160, 8, txt="MONTHLY FAMILY NON-DISCRETIONARY EXPENSES", border=1, fill=True)
-    pdf.cell(30, 8, txt="Amount", border=1, fill=True, align='C', ln=True)
-    
-    pdf.set_font("Arial", size=9)
-    for label in nd_labels:
-        pdf.cell(160, 7, txt=f"{label} " + "." * (70 - len(label)), border=1)
-        pdf.cell(30, 7, txt=f"${nd_values[label]:,.2f}", border=1, align='R', ln=True)
-        
-    pdf.set_font("Arial", 'B', 9)
-    pdf.cell(160, 8, txt="Total", border=1)
-    pdf.cell(30, 8, txt=f"${total_nd:,.2f}", border=1, align='R', ln=True)
+    pdf.cell(160, 8, "Income Total:", border=1)
+    pdf.cell(30, 8, f"${total_income:,.2f}", border=1, ln=True, align='R')
+    pdf.cell(160, 8, "Expense Total:", border=1)
+    pdf.cell(30, 8, f"${expense_total:,.2f}", border=1, ln=True, align='R')
+    pdf.cell(160, 8, "Difference:", border=1)
+    pdf.cell(30, 8, f"${difference:,.2f}", border=1, ln=True, align='R')
+
+    pdf.ln(5)
+    pdf.set_font("Arial", 'I', 8)
+    pdf.multi_cell(0, 5, "I hereby certify that the above information is complete and accurate to the best of my knowledge. PLEASE FORWARD COMPLETED BUDGETS TO iande@goldhar.ca")
 
     pdf_output = pdf.output(dest='S').encode('latin-1')
-    st.download_button(
-        label="📥 Download Full PDF",
-        data=pdf_output,
-        file_name=f"Goldhar_IE_{report_date.strftime('%Y_%m')}.pdf",
-        mime="application/pdf"
-    )
+    st.download_button("📥 Download Official PDF", data=pdf_output, file_name=f"IE_Report_{report_date.strftime('%b_%Y')}.pdf")
