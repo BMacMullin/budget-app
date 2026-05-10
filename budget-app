@@ -1,0 +1,69 @@
+import streamlit as st
+from fpdf import FPDF
+import datetime
+
+# --- APP CONFIG ---
+st.set_page_config(page_title="Monthly Income & Expense Report", layout="centered")
+
+st.title("📊 Monthly Budget Reporter")
+st.write("Fill this out monthly and download the PDF to email to your representative.")
+
+# --- FORM SECTIONS ---
+with st.form("budget_form"):
+    st.header("General Information")
+    report_month = st.date_input("Report for the Month of:", value=datetime.date.today())
+    full_name = st.text_input("Full Name")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Income (Monthly)")
+        net_pay = st.number_input("Net Employment Income", min_value=0.0, step=10.0)
+        pension = st.number_input("Pension/Old Age Security", min_value=0.0, step=10.0)
+        other_inc = st.number_input("Other Income (Support, etc.)", min_value=0.0, step=10.0)
+        
+    with col2:
+        st.subheader("Fixed Expenses")
+        rent_mtg = st.number_input("Rent or Mortgage", min_value=0.0, step=10.0)
+        utilities = st.number_input("Utilities (Heat, Hydro, Water)", min_value=0.0, step=10.0)
+        phone_net = st.number_input("Phone & Internet", min_value=0.0, step=10.0)
+
+    st.subheader("Living Expenses")
+    groceries = st.number_input("Groceries & Household Supplies", min_value=0.0, step=10.0)
+    transport = st.number_input("Transportation/Gas", min_value=0.0, step=10.0)
+    medical = st.number_input("Medical/Dental", min_value=0.0, step=10.0)
+    
+    submit_button = st.form_submit_button("Generate PDF Report")
+
+# --- CALCULATIONS ---
+total_income = net_pay + pension + other_inc
+total_expenses = rent_mtg + utilities + phone_net + groceries + transport + medical
+net_difference = total_income - total_expenses
+
+# --- PDF GENERATION ---
+if submit_button:
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt="Monthly Income and Expense Report", ln=True, align='C')
+    
+    pdf.set_font("Arial", size=12)
+    pdf.ln(10)
+    pdf.cell(200, 10, txt=f"Name: {full_name}", ln=True)
+    pdf.cell(200, 10, txt=f"Reporting Period: {report_month.strftime('%B %Y')}", ln=True)
+    pdf.ln(5)
+    
+    pdf.cell(200, 10, txt=f"Total Monthly Income: ${total_income:,.2f}", ln=True)
+    pdf.cell(200, 10, txt=f"Total Monthly Expenses: ${total_expenses:,.2f}", ln=True)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(200, 10, txt=f"Net Surplus/Deficit: ${net_difference:,.2f}", ln=True)
+    
+    # Save PDF to a string
+    pdf_output = pdf.output(dest='S').encode('latin-1')
+    
+    st.success("✅ Report Generated!")
+    st.download_button(
+        label="📥 Download PDF for Trustee",
+        data=pdf_output,
+        file_name=f"Budget_Report_{report_month.strftime('%Y_%m')}.pdf",
+        mime="application/pdf"
+    )
