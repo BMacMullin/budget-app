@@ -93,4 +93,4 @@ if submitted:
     email_subject = f"Monthly I&E Report - {name} - {report_date.strftime('%B %Y')}"
     mailto_link = f"mailto:iande@goldhar.ca?subject={email_subject}&body=Hi,%0D%0A%0D%0APlease find my Monthly Income and Expense report for {report_date.strftime('%B %Y')} attached.%0D%0A%0D%0AThank you,%0D%0A{name}"
     
-    st.markdown(f'<a href="{mailto_link}" target="_blank" style="padding: 10px 20px; background-color: #f0f2f6; color: #31333F; text-decoration: none; border-radius: 5px; border: 1px solid #dcdcdc;">📧 2. Open Email App</a>', unsafe_allow_index=True)
+  st.markdown(f'<a href="{mailto_link}" target="_blank" style="padding: 10px 20px; background-color: #f0f2f6; color: #31333F; text-decoration: none; border-radius: 5px; border: 1px solid #dcdcdc;">📧 2. Open Email App</a>', unsafe_allow_html=True)
