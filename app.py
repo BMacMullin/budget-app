@@ -81,4 +81,26 @@ if submitted:
     pdf.set_font("Arial", size=10)
     income_lines = [
         ("Net Employment Income", inc_net_pay),
-        ("
+        ("Pension / OAS / GIS", inc_pension),
+        ("Employment Insurance", inc_ei),
+        ("Child Tax Benefit", inc_child_tax),
+        ("Child / Spousal Support", inc_support),
+        ("Other Income", inc_other)
+    ]
+    
+    for label, amt in income_lines:
+        pdf.cell(150, 8, txt=label, border=1)
+        pdf.cell(40, 8, txt=f"${amt:,.2f}", border=1, ln=True)
+        
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(150, 8, txt="TOTAL INCOME", border=1)
+    pdf.cell(40, 8, txt=f"${total_income:,.2f}", border=1, ln=True)
+
+    pdf_output = pdf.output(dest='S').encode('latin-1')
+    st.success("Income section updated! Ready for expenses?")
+    st.download_button(
+        label="📥 Download Updated PDF",
+        data=pdf_output,
+        file_name=f"Report_{report_date.strftime('%Y_%m')}.pdf",
+        mime="application/pdf"
+    )
