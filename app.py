@@ -6,10 +6,8 @@ import datetime
 st.set_page_config(page_title="Goldhar Monthly Form", layout="centered")
 
 st.title("📋 Official Income & Expense Form")
-st.write("Complete the form, download the PDF, and use the Email button to send it.")
 
-# --- 2. SESSION STATE INITIALIZATION ---
-# This acts as the app's "sticky note" so it doesn't forget the PDF was made
+# --- 2. SESSION STATE ---
 if 'pdf_ready' not in st.session_state:
     st.session_state.pdf_ready = False
 if 'pdf_data' not in st.session_state:
@@ -25,7 +23,7 @@ with st.form("ie_form"):
         marital = st.text_input("Marital Status", value="Single")
     with col_b:
         report_date = st.date_input("Month Ending:", value=datetime.date.today())
-        phone = st.text_input("Phone", value="(782) 409-1825")
+        phone = st.text_input("Home Phone", value="(782) 409-1825")
         employer = st.selectbox("Employer / Source", ["Kenzie's K9's On the Shore", "Employment Insurance", "Other"])
         family_unit = st.number_input("Number in Family Unit", min_value=1, value=1)
 
@@ -43,15 +41,12 @@ with st.form("ie_form"):
     with st.expander("🏠 Housing & Utilities"):
         h_labels = ["Rent/Mortgage", "Property taxes/Condo fees", "Heating/Gas/Oil", "Telephone", "Cable", "Hydro", "Water", "Furniture", "Other Housing"]
         h_vals = {label: st.number_input(label, min_value=0.0, key=f"h_{label}") for label in h_labels}
-
     with st.expander("👤 Personal & Living"):
         p_labels = ["Smoking", "Alcohol", "Dining/Lunches/Restaurants", "Entertainment/Sports", "Gifts/Charitable donations", "Allowances", "Other Personal", "Food/Grocery", "Laundry/Dry cleaning", "Grooming/Toiletries", "Clothing", "Other Living"]
         p_vals = {label: st.number_input(label, min_value=0.0, key=f"p_{label}") for label in p_labels}
-
     with st.expander("🚗 Transport & Medical"):
         tm_labels = ["Car lease/Payments", "Repair/Maintenance/Gas", "Public transportation", "Other Transport", "Prescriptions", "Dental", "Other Medical"]
         tm_vals = {label: st.number_input(label, min_value=0.0, key=f"tm_{label}") for label in tm_labels}
-
     with st.expander("🛡️ Insurance & Other Payments"):
         io_labels = ["Vehicle Insurance", "House Insurance", "Furniture/Contents Insurance", "Life insurance", "Other Insurance", "To the estate", "To secured creditor", "Other (than mortgage and vehicle)", "Other Payments"]
         io_vals = {label: st.number_input(label, min_value=0.0, key=f"io_{label}") for label in io_labels}
@@ -62,9 +57,8 @@ with st.form("ie_form"):
 
     submitted = st.form_submit_button("✅ Generate PDF Report")
 
-# --- 4. THE PERSISTENT ENGINE ---
+# --- 4. PERSISTENT PDF & EMAIL LOGIC ---
 if submitted:
-    # Build the PDF
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 12)
@@ -103,15 +97,10 @@ if submitted:
     pdf.cell(160, 8, "Net Monthly Difference:", border=1, fill=True)
     pdf.cell(30, 8, f"${difference:,.2f}", border=1, ln=True, align='R', fill=True)
 
-    pdf.ln(5)
-    pdf.set_font("Arial", 'I', 8)
-    pdf.multi_cell(0, 5, "I hereby certify that the above information is complete and accurate. PLEASE FORWARD TO iande@goldhar.ca")
-
-    # Save to memory
-    st.session_state.pdf_data = pdf.output(dest='S').encode('latin-1')
+    pdf_output = pdf.output(dest='S').encode('latin-1')
+    st.session_state.pdf_data = pdf_output
     st.session_state.pdf_ready = True
 
-# Display buttons if PDF is in memory
 if st.session_state.pdf_ready:
     st.success(f"### 📝 PDF Created for {report_date.strftime('%B %Y')}!")
     
@@ -122,13 +111,19 @@ if st.session_state.pdf_ready:
         mime="application/pdf"
     )
 
+    st.info("**2. Send to: iande@goldhar.ca**")
+    
     selected_month = report_date.strftime('%B %Y')
     email_subject = f"Monthly I&E Report - {name} - {selected_month}"
-    email_body = f"Hi,%0D%0A%0D%0APlease find my report for {selected_month} attached.%0D%0A%0D%0AThank you,%0D%0A{name}"
-    mailto_link = f"mailto:iande@goldhar.ca?subject={email_subject}&body={email_body}"
+    email_body = f"Hi,%0D%0A%0D%0APlease find my report for {selected_month} attached."
     
-    st.markdown(f'''
-        <a href="{mailto_link}" target="_blank" style="padding: 10px 20px; background-color: #f0f2f6; color: #31333F; text-decoration: none; border-radius: 5px; border: 1px solid #dcdcdc; display: inline-block; margin-top: 10px; font-weight: bold;">
-            📧 2. Open Email App for {selected_month}
-        </a>
-    ''', unsafe_allow_html=True)
+    # Standard Link
+    mailto_link = f"mailto:iande@goldhar.ca?subject={email_subject}&body={email_body}"
+    # Specific Gmail App Link
+    gmail_link = f"googlegmail:///co?to=iande@goldhar.ca&subject={email_subject}&body={email_body}"
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f'<a href="{mailto_link}" style="padding: 12px; background-color: #f0f2f6; color: #31333F; text-decoration: none; border-radius: 8px; display: block; text-align: center; font-weight: bold; border: 1px solid #dcdcdc;">📧 Standard Email</a>', unsafe_allow_html=True)
+    with col2:
+        st.markdown(f'<a href="{gmail_link}" style="padding: 12px; background-color: #EA4335; color: white; text-decoration: none; border-radius: 8px; display: block; text-align: center; font-weight: bold;">🔴 Open Gmail App</a>', unsafe_allow_html=True)
